@@ -109,7 +109,8 @@ if (!empty($_POST['trackid'])) {
             $stmt = $pdo->query($sql); $rows = $stmt->fetchAll(); $c = 1;
             foreach ($rows as $row):
                 echo '
-                <li data-id="'.$row['id'].'"><i>+</i><a id="a' . $c++ . '" href="book/' . $bookpath . '/' . $row['path'] . '">' . $row['title'] . '</a></li>';
+                <li><i data-id="'.$row['id'].'" data-name="'.$row['title'].'" data-bookpath="'.$bookpath.'" data-filepath="'.$row['path'].'">+</i>
+                <a id="a' . $c++ . '" href="book/' . $bookpath . '/' . $row['path'] . '">' . $row['title'] . '</a></li>';
             endforeach;
 ?>
         </ul>
@@ -132,9 +133,12 @@ if (!empty($_POST['trackid'])) {
 <script>
     var currentLocation = window.location.href;
 
-    $("#playlist li").on('click', function () {
-        xyz = $(this).data("id");
-        $('ul#selected').prepend('<li>' + xyz + '</li>');
+    $("#playlist li i").on('click', function () {
+        dataid = $(this).data("id");
+        databookpath = $(this).data("bookpath");
+        datafilepath =  $(this).data("filepath");
+        dataname = $(this).data("name");
+        $('ul#selected').prepend('<li><i>-</i><a href="book/' + databookpath + '/' + datafilepath+'">' + dataname + '</li>');
         //console.log(xyz);
 
         $.post(
