@@ -2,37 +2,66 @@
 session_start();
 $uniqid = session_id(); //echo $uniqid;
 
+date_default_timezone_set('Europe/Istanbul');
+
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 $pdo = new PDO('sqlite:player.sqlite');
 
-//Unique ID ile UserID'yi bulma
-$sql = "SELECT id FROM users WHERE uniqid='" . $uniqid . "'";
+//Unique ID kayıtlı değilse kaydetme, kayıtlı ise UserID'yi bulma
+$sql = "SELECT * FROM users WHERE uniqid='" . $uniqid . "'";
 $stmt = $pdo->query($sql);
 $rows = $stmt->fetchAll();
 foreach ($rows as $row) {
-    $userid = $row['id'];
+    $isthereauser = $row['id'];
 }
+if(empty($isthereauser)) {
+    $sql = 'INSERT INTO users (uniqid) VALUES ("' . $uniqid . '")'; //echo $sql;
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+
+    $sql = "SELECT * FROM users WHERE uniqid='" . $uniqid . "'"; //echo $sql;
+    $stmt = $pdo->query($sql);
+    $rows = $stmt->fetchAll();
+    foreach ($rows as $row) {
+        $userid = $row['id'];
+    }
+}else{
+    foreach ($rows as $row) {
+        $userid = $row['id'];
+    }
+};
+//echo $userid;
 
 //Hangi Kitap?
-$sql = "SELECT * FROM books WHERE id='" . $_GET['bookid'] . "'"; //echo $sql;
-$stmt = $pdo->query($sql);
-$rows = $stmt->fetchAll();
-foreach ($rows as $row) {
-    $bookid = $row['id'];
-    $bookname = $row['name'];
-    $bookpath = $row['path'];
+if(!empty($_GET['bookid'])){
+    $sql = "SELECT * FROM books WHERE id='" . $_GET['bookid'] . "'"; //echo $sql;
+    $stmt = $pdo->query($sql);
+    $rows = $stmt->fetchAll();
+    foreach ($rows as $row) {
+        $bookid = $row['id'];
+        $bookname = $row['name'];
+        $bookpath = $row['path'];
+    }
+} else {
+    $sql = "SELECT * FROM books WHERE id=1"; //echo $sql;
+    $stmt = $pdo->query($sql);
+    $rows = $stmt->fetchAll();
+    foreach ($rows as $row) {
+        $bookid = $row['id'];
+        $bookname = $row['name'];
+        $bookpath = $row['path'];
+    }
 }
 
-if (!empty($_POST['trackid'])) {
-    echo $_POST['trackid'];
-    $sql = 'INSERT INTO userstracks (user, track) VALUES (' . $userid . ',' . $_POST['trackid'] . ')';
-    echo $sql;
+if (!empty($_GET['trackid'])) { 
+    $sql = 'INSERT INTO userstracks (user, track) VALUES (' . $userid . ',' . $_GET['trackid'] . ')';
+    //echo $sql;
     $stmt = $pdo->prepare($sql);
-    $stmt->execute(array($_POST['trackid']));
-    echo htmlentities($_POST['trackid']);
+    $stmt->execute();
+    echo htmlentities($_GET['trackid']);
     die();
 }
 ?>
@@ -105,7 +134,7 @@ if (!empty($_POST['trackid'])) {
     <div id="playlistTracks" class="tabcontent" style="display:block">
         <ul id="playlist">
 <?php
-            $sql = 'SELECT * FROM tracks WHERE book=' . $_GET['bookid'] . ' ORDER BY id'; //echo $sql;
+            $sql = 'SELECT * FROM tracks WHERE book=' . $bookid . ' ORDER BY id'; //echo $sql;
             $stmt = $pdo->query($sql); $rows = $stmt->fetchAll(); $c = 1;
             foreach ($rows as $row):
                 echo '
@@ -131,8 +160,7 @@ if (!empty($_POST['trackid'])) {
 
 <script src="player.js"></script>
 <script>
-    var currentLocation = window.location.href;
-
+    
     $("#playlist li i").on('click', function () {
         dataid = $(this).data("id");
         databookpath = $(this).data("bookpath");
@@ -141,10 +169,13 @@ if (!empty($_POST['trackid'])) {
         $('ul#selected').prepend('<li><i>-</i><a href="book/' + databookpath + '/' + datafilepath+'">' + dataname + '</li>');
         //console.log(xyz);
 
-        $.post(
-            currentLocation,
-            {trackid: 9}
-        );
+        var currentLocation = window.location.href + '?&trackid=' + dataid;
+        
+        alert(currentLocation);
+
+        $.get(currentLocation, function(data, status){
+            alert("Data: " + data + "\nStatus: " + status);
+        });
     });
 
     var audio; var playlist; var tracks; var current;
